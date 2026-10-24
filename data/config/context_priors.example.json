@@ -1,0 +1,22 @@
+{
+  "name": "threxis-context-priors-example-v1",
+  "status": "EXAMPLE ONLY: independently verify citations, author, retrieval date, and weights before copying to context_priors.json",
+  "weight_values": [0.1, 0.3, 0.6, 0.9],
+  "source_references_to_review": {
+    "credential_access": ["https://attack.mitre.org/techniques/T1110/"],
+    "lateral_movement": ["https://attack.mitre.org/techniques/T1021/"],
+    "command_execution": ["https://attack.mitre.org/techniques/T1059/"],
+    "scheduled_task_persistence": ["https://attack.mitre.org/techniques/T1053/"],
+    "local_collection": ["https://attack.mitre.org/detectionstrategies/DET0380/"],
+    "exfiltration": ["https://attack.mitre.org/techniques/T1041/"]
+  },
+  "weights": {
+    "credential_access": {"authentication_log": 0.9, "process_creation": 0.3, "network_flow": 0.3, "dns_log": 0.1, "file_access": 0.1, "powershell_log": 0.3, "registry_event": 0.1, "scheduled_task": 0.1},
+    "lateral_movement": {"authentication_log": 0.6, "process_creation": 0.6, "network_flow": 0.9, "dns_log": 0.3, "file_access": 0.3, "powershell_log": 0.3, "registry_event": 0.1, "scheduled_task": 0.3},
+    "command_execution": {"authentication_log": 0.1, "process_creation": 0.9, "network_flow": 0.3, "dns_log": 0.3, "file_access": 0.3, "powershell_log": 0.9, "registry_event": 0.1, "scheduled_task": 0.1},
+    "scheduled_task_persistence": {"authentication_log": 0.1, "process_creation": 0.6, "network_flow": 0.1, "dns_log": 0.1, "file_access": 0.6, "powershell_log": 0.6, "registry_event": 0.6, "scheduled_task": 0.9},
+    "local_collection": {"authentication_log": 0.1, "process_creation": 0.6, "network_flow": 0.3, "dns_log": 0.1, "file_access": 0.9, "powershell_log": 0.6, "registry_event": 0.1, "scheduled_task": 0.1},
+    "exfiltration": {"authentication_log": 0.1, "process_creation": 0.6, "network_flow": 0.9, "dns_log": 0.6, "file_access": 0.6, "powershell_log": 0.3, "registry_event": 0.1, "scheduled_task": 0.1}
+  }
+}
+

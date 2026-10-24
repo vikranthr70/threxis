@@ -1,0 +1,21 @@
+{
+  "model_name": "threxis-synthetic-phase-source-relevance-v1",
+  "status": "synthetic assumptions; not real-world prevalence estimates",
+  "sampling": "Independent Bernoulli label for each candidate and phase; labels are stored separately and unavailable to selectors.",
+  "cost_distribution": [1, 2, 3],
+  "probabilities": {
+    "credential_access": {"authentication_log": 0.70, "process_creation": 0.25, "network_flow": 0.15, "dns_log": 0.12, "file_access": 0.05, "powershell_log": 0.20, "registry_event": 0.10, "scheduled_task": 0.08},
+    "lateral_movement": {"authentication_log": 0.55, "process_creation": 0.65, "network_flow": 0.70, "dns_log": 0.25, "file_access": 0.18, "powershell_log": 0.35, "registry_event": 0.20, "scheduled_task": 0.20},
+    "command_execution": {"authentication_log": 0.08, "process_creation": 0.75, "network_flow": 0.18, "dns_log": 0.32, "file_access": 0.30, "powershell_log": 0.50, "registry_event": 0.15, "scheduled_task": 0.12},
+    "scheduled_task_persistence": {"authentication_log": 0.10, "process_creation": 0.45, "network_flow": 0.10, "dns_log": 0.08, "file_access": 0.25, "powershell_log": 0.35, "registry_event": 0.55, "scheduled_task": 0.70},
+    "local_collection": {"authentication_log": 0.06, "process_creation": 0.38, "network_flow": 0.20, "dns_log": 0.15, "file_access": 0.70, "powershell_log": 0.42, "registry_event": 0.12, "scheduled_task": 0.15},
+    "exfiltration": {"authentication_log": 0.05, "process_creation": 0.32, "network_flow": 0.75, "dns_log": 0.55, "file_access": 0.62, "powershell_log": 0.25, "registry_event": 0.08, "scheduled_task": 0.07}
+  },
+  "observable_signal_policy": {
+    "selector_allowlist": ["evidence_id", "source_type", "collection_cost"],
+    "non_signal_fields": ["timestamp", "host", "user", "event_type"],
+    "cost_independent_of_relevance_conditioned_on_source_type": true,
+    "assign_randomized_evidence_ids_after_shuffling": true
+  }
+}
+

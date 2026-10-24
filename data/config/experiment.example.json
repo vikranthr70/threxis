@@ -1,0 +1,49 @@
+{
+  "experiment_name": "threxis-three-person-smoke-v1",
+  "status": "engineering_validation; freeze any main-run config before viewing comparisons",
+  "python_minor_target": "3.12",
+  "base_seed": 20261024,
+  "scenario_templates": [
+    "credential_access_to_lateral_movement",
+    "command_execution_to_scheduled_task_persistence",
+    "local_collection_to_exfiltration"
+  ],
+  "generator_instances_per_template": 10,
+  "evidence_items_per_instance": 100,
+  "source_types": [
+    "authentication_log",
+    "process_creation",
+    "network_flow",
+    "dns_log",
+    "file_access",
+    "powershell_log",
+    "registry_event",
+    "scheduled_task"
+  ],
+  "cost_values": [1, 2, 3],
+  "single_round_budget_percentages": [5, 10, 20, 40],
+  "threat_shift_total_budget_percentages": [20, 40],
+  "rounds": 6,
+  "shift_after_round": 2,
+  "per_round_budget_policy": "divmod_quotient_plus_remainder_to_early_rounds",
+  "unused_round_budget_policy": "expire_no_rollover",
+  "candidate_availability": "all_candidates_available_from_round_1",
+  "fill_budget_policy": "skip_non_fitting_item_and_continue",
+  "tie_break_rule": "ascending_randomized_evidence_id",
+  "context_retention_levels": [1.0, 0.8, 0.6],
+  "context_noise_seeds_per_instance_quality": 5,
+  "random_seeds_per_instance_condition": 10,
+  "selectors": ["static", "random", "threat_agnostic", "adaptive", "frozen_context_adaptive"],
+  "include_evaluator_only_oracle": true,
+  "artifacts": {
+    "truth_probability_model": "data/config/truth_probability_model.json",
+    "context_priors": "data/config/context_priors.json",
+    "static_priority": "data/config/static_priority.json",
+    "candidates_dir": "data/candidates",
+    "ground_truth_file": "data/ground_truth/labels.json",
+    "per_run_file": "results/per_run.jsonl",
+    "aggregate_file": "results/aggregate.csv",
+    "manifest_file": "results/run_manifest.json"
+  }
+}
+

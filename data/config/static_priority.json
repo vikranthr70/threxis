@@ -1,0 +1,17 @@
+{
+  "name": "threxis-static-source-order-v1",
+  "status": "proposed_fixed_baseline; commit and hash before main results",
+  "priority_high_to_low": [
+    "authentication_log",
+    "process_creation",
+    "network_flow",
+    "file_access",
+    "dns_log",
+    "powershell_log",
+    "registry_event",
+    "scheduled_task"
+  ],
+  "within_source_type_tie_break": "ascending_randomized_evidence_id",
+  "tuning_after_main_results_allowed": false
+}
+

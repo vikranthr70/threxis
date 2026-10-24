@@ -1,0 +1,30 @@
+[
+  {
+    "schema_version": "1.0",
+    "event_id": "EVT-AUTH-001",
+    "timestamp": "2026-01-01T09:00:00+00:00",
+    "event_type": "repeated_login_failure",
+    "source_type": "authentication_log",
+    "scenario_id": "suspicious_authentication",
+    "attributes": {"host": "synthetic-host-01", "user": "synthetic-user-01", "artificial": true}
+  },
+  {
+    "schema_version": "1.0",
+    "event_id": "EVT-FILE-001",
+    "timestamp": "2026-01-01T09:05:00+00:00",
+    "event_type": "sensitive_file_changed",
+    "source_type": "file_access",
+    "scenario_id": "suspicious_file_modification",
+    "attributes": {"host": "synthetic-host-02", "path": "C:/synthetic/report.txt", "artificial": true}
+  },
+  {
+    "schema_version": "1.0",
+    "event_id": "EVT-EXFIL-001",
+    "timestamp": "2026-01-01T09:10:00+00:00",
+    "event_type": "unusual_outbound_transfer",
+    "source_type": "network_flow",
+    "scenario_id": "potential_exfiltration",
+    "attributes": {"host": "synthetic-host-03", "destination": "example.invalid", "artificial": true}
+  }
+]
+
