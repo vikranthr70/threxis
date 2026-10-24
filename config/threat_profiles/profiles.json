@@ -1,0 +1,28 @@
+{
+  "schema_version": "1.0",
+  "status": "reviewed demonstration profiles; ranking weights are judgments, not probabilities",
+  "profiles": [
+    {
+      "profile_id":"profile-auth-v1","scenario_id":"suspicious_authentication","display_name":"Suspicious Authentication","investigation_phase":"credential_access",
+      "technique_ids":["T1110","T1110.001","T1003.001"],
+      "evidence_weights":{"authentication_log":0.9,"process_creation":0.4,"network_flow":0.3,"powershell_log":0.3},
+      "priority_rationale":"Authentication telemetry establishes failure patterns; process and network records provide supporting context.",
+      "missing_evidence_recommendations":{"authentication_log":"Enable authentication failure and lockout logging.","process_creation":"Enable process creation auditing.","network_flow":"Retain connection metadata.","powershell_log":"Enable PowerShell operational logging."}
+    },
+    {
+      "profile_id":"profile-file-v1","scenario_id":"suspicious_file_modification","display_name":"Suspicious File Modification","investigation_phase":"execution_and_impact_review",
+      "technique_ids":["T1059.001"],
+      "evidence_weights":{"file_access":0.9,"process_creation":0.7,"powershell_log":0.5,"registry_event":0.3},
+      "priority_rationale":"File metadata is primary; process and script records explain the modifying actor. Generic modification alone is not an ATT&CK mapping.",
+      "missing_evidence_recommendations":{"file_access":"Enable file access and integrity metadata.","process_creation":"Enable process creation auditing.","powershell_log":"Enable PowerShell script-block logging where appropriate.","registry_event":"Retain relevant registry change events."}
+    },
+    {
+      "profile_id":"profile-exfil-v1","scenario_id":"potential_exfiltration","display_name":"Potential Exfiltration","investigation_phase":"exfiltration",
+      "technique_ids":["T1041","T1059.001"],
+      "evidence_weights":{"network_flow":0.9,"file_access":0.7,"dns_log":0.6,"process_creation":0.4,"powershell_log":0.3},
+      "priority_rationale":"Network records and data-access evidence are primary. Generic outbound traffic alone does not establish T1041.",
+      "missing_evidence_recommendations":{"network_flow":"Retain outbound connection metadata.","file_access":"Retain access metadata for staged data.","dns_log":"Retain DNS query logs.","process_creation":"Enable process creation auditing.","powershell_log":"Enable PowerShell operational logging."}
+    }
+  ]
+}
+
