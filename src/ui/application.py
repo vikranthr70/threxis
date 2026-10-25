@@ -54,34 +54,46 @@ def recommendations(ws):
     st.caption("Generic backend recommendations. The table orders requirements by weighted gap.")
 
 
-def live_monitor():
-    page_header("00 / LIVE LAB", "Ubuntu Security Monitor",
-                "Actual SSH authentication failures from an operator-supplied Ubuntu VM log. "
-                "No synthetic events are mixed into this view.")
-    st.caption("SOURCE: UBUNTU LAB VM / SSHD LOGS. No endpoint agent or network listener is installed.")
-    if st.button("Refresh log snapshot"):
-        st.rerun()
+@st.fragment(run_every="3s")
+def live_snapshot_panel():
+    """Auto-refresh the operator-supplied Ubuntu log file."""
     snapshot = monitor_snapshot()
     if not snapshot["path_exists"]:
-        st.info("Waiting for Ubuntu authentication log at data/live/ubuntu-auth.log. "
-                "Copy or stream only your authorized lab VM's sshd log to this file.")
+        st.info("WAITING FOR UBUNTU LOG SOURCE: data/live/ubuntu-auth.log")
         return
-    a, b = st.columns(2)
-    with a:
-        statistic("Observed SSH failures", len(snapshot["events"]))
-    with b:
-        statistic("Rule-generated alerts", len(snapshot["alerts"]))
-    if snapshot["alerts"]:
-        st.warning("SSH failure burst detected. This is suspicious activity, not confirmed compromise.")
+    events, alerts = snapshot["events"], snapshot["alerts"]
+    left, right = st.columns(2)
+    with left:
+        statistic("Observed SSH failures", len(events))
+    with right:
+        statistic("Detection alerts", len(alerts))
+    if alerts:
+        st.error("SSH FAILURE BURST DETECTED")
+        st.caption("Suspicious authentication pattern. Not proof of account compromise.")
+    elif events:
+        st.info("Authentication failures observed. No rule threshold met yet.")
     else:
-        st.info("No SSH failure burst detected in the current snapshot.")
-    st.subheader("Live-source detection alerts")
-    table([item.to_dict() for item in snapshot["alerts"]])
-    st.subheader("Observed authentication events")
-    table([item.to_dict() for item in snapshot["events"]])
-    st.caption("Snapshot refresh is manual. The timestamps come from log lines when parseable; "
-               "syslog timestamps without timezone use the monitor host timezone. "
-               "Log ingestion is read-only and does not initiate an attack.")
+        st.info("Log source connected. Waiting for SSH failed-password records.")
+    st.subheader("Detection alerts")
+    table([alert.to_dict() for alert in alerts])
+    st.subheader("Recent authentication events")
+    table([event.to_dict() for event in events[-100:]])
+    st.caption("This panel refreshes every 3 seconds. Only actual imported Ubuntu log records are shown. "
+               "No synthetic events are mixed into the live view.")
+
+
+def live_monitor():
+    page_header("00 / LIVE INCIDENT CONSOLE", "Ubuntu Security Monitor",
+                "Observe failed SSH login attempts on your own VirtualBox Ubuntu VM.")
+    st.caption("LIVE LOG FEED / AUTHENTICATION / READ ONLY")
+    st.write("Start your Ubuntu VM, perform three manual failed SSH login attempts against "
+             "a nonexistent test account, and inspect the resulting rule alert.")
+    with st.expander("VirtualBox connection instructions"):
+        st.write("Use an isolated host-only VM network. Export Ubuntu sshd failed-password "
+                 "log lines into data/live/ubuntu-auth.log on this computer. "
+                 "The dashboard reads this file automatically every three seconds. "
+                 "See docs/ubuntu-live-demo.md for detailed instructions.")
+    live_snapshot_panel()
 
 
 def overview(ws):
@@ -319,10 +331,13 @@ def main():
                         key="navigation", label_visibility="collapsed")
         st.divider()
         st.caption("DEMONSTRATION CONTEXT")
-        scenario = st.selectbox("Threat scenario", list(SCENARIOS), format_func=SCENARIOS.get, key="scenario")
-        seed = int(st.number_input("Synthetic seed", min_value=0, max_value=1000000, value=25, step=1, key="seed"))
+        with st.expander("Synthetic demonstration controls", expanded=page != "Live Ubuntu Monitor"):
+            scenario = st.selectbox("Threat scenario", list(SCENARIOS), format_func=SCENARIOS.get, key="scenario")
+        with st.expander("Advanced: reproducible synthetic data", expanded=False):
+            seed = int(st.number_input("Synthetic seed", min_value=0, max_value=1000000, value=25, step=1, key="seed"))
         count = st.select_slider("Event count", options=[6, 12, 18, 24, 36], value=18, key="count")
-        st.caption("Artificial records generated locally. Scenario and seed define the current instance.")
+        if page != "Live Ubuntu Monitor":
+            st.caption("Synthetic settings do not affect live Ubuntu monitoring.")
         st.markdown('<div class="launch">NOT READY FOR PUBLIC LAUNCH<br>Local development / academic use</div>', unsafe_allow_html=True)
     try:
         if page in ("Privacy Policy", "Terms and Conditions"):
