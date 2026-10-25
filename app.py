@@ -1,6 +1,5 @@
-"""Reserved entry point for Person 3's optional thin Streamlit dashboard.
+"""Run the THREXIS workstation with streamlit run app.py."""
+from src.ui.application import main
 
-The dashboard is intentionally deferred until the CLI experiment and contract
-tests are stable. See TEAM_CONTRACT.md; do not put experiment logic here.
-"""
+main()
 
