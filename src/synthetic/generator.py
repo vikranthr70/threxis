@@ -35,15 +35,15 @@ def _templates(scenario_id: str) -> list[tuple[str, str, dict[str, object], bool
         ]
     if scenario_id == "suspicious_file_modification":
         return [
-            ("file_modified", "file_audit_log", {"user": "analyst", "host": "workstation-01", "file_path": "/home/analyst/notes.txt", "process_name": "text-editor", "process_id": 410, "authorized": True}, False),
-            ("process_started", "process_audit_log", {"user": "svc-backup", "host": "server-02", "process_name": "powershell", "process_id": 880, "parent_process": "wscript"}, True),
-            ("file_modified", "file_audit_log", {"user": "svc-backup", "host": "server-02", "file_path": "/srv/config/app.yml", "process_name": "powershell", "process_id": 880, "authorized": False}, True),
-            ("file_modified", "file_audit_log", {"user": "svc-backup", "host": "server-02", "file_path": "/srv/config/agent.yml", "process_name": "powershell", "process_id": 880, "authorized": False}, True),
-            ("file_modified", "file_audit_log", {"user": "svc-backup", "host": "server-02", "file_path": "/etc/cron.d/task", "process_name": "powershell", "process_id": 880, "authorized": False}, True),
+            ("file_modified", "file_access", {"user": "analyst", "host": "workstation-01", "file_path": "/home/analyst/notes.txt", "process_name": "text-editor", "process_id": 410, "authorized": True}, False),
+            ("process_started", "process_creation", {"user": "svc-backup", "host": "server-02", "process_name": "powershell", "process_id": 880, "parent_process": "wscript"}, True),
+            ("file_modified", "file_access", {"user": "svc-backup", "host": "server-02", "file_path": "/srv/config/app.yml", "process_name": "powershell", "process_id": 880, "authorized": False}, True),
+            ("file_modified", "file_access", {"user": "svc-backup", "host": "server-02", "file_path": "/srv/config/agent.yml", "process_name": "powershell", "process_id": 880, "authorized": False}, True),
+            ("file_modified", "file_access", {"user": "svc-backup", "host": "server-02", "file_path": "/etc/cron.d/task", "process_name": "powershell", "process_id": 880, "authorized": False}, True),
         ]
     return [
         ("network_connection", "network_flow", {"user": "analyst", "host": "workstation-01", "destination_ip": _DOC_IPS[0], "destination_port": 443, "bytes_sent": 1200, "process_name": "browser"}, False),
-        ("data_access", "file_audit_log", {"user": "svc-report", "host": "server-03", "data_path": "/srv/reports/customer-export.csv", "bytes_read": 8_000_000, "process_name": "python"}, True),
+        ("data_access", "file_access", {"user": "svc-report", "host": "server-03", "data_path": "/srv/reports/customer-export.csv", "bytes_read": 8_000_000, "process_name": "python"}, True),
         ("network_connection", "network_flow", {"user": "svc-report", "host": "server-03", "destination_ip": _DOC_IPS[2], "destination_port": 8443, "bytes_sent": 12_000_000, "process_name": "unknown-client"}, True),
         ("network_connection", "network_flow", {"user": "svc-report", "host": "server-03", "destination_ip": _DOC_IPS[2], "destination_port": 8443, "bytes_sent": 11_000_000, "process_name": "unknown-client"}, True),
         ("network_connection", "network_flow", {"user": "svc-report", "host": "server-03", "destination_ip": _DOC_IPS[2], "destination_port": 8443, "bytes_sent": 10_000_000, "process_name": "unknown-client"}, True),

@@ -24,6 +24,17 @@ SCENARIOS = (
     "potential_exfiltration",
 )
 
+ARCHITECTURE_SOURCE_TYPES = {
+    "authentication_log",
+    "process_creation",
+    "network_flow",
+    "dns_log",
+    "file_access",
+    "powershell_log",
+    "registry_event",
+    "scheduled_task",
+}
+
 
 def event(event_id: str, when: str, event_type: str, scenario: str, source: str, **attrs) -> SecurityEvent:
     return SecurityEvent(event_id, when, event_type, source, scenario, attrs)
@@ -51,6 +62,15 @@ class SyntheticGeneratorTests(unittest.TestCase):
                 ip = item.attributes.get("source_ip")
                 if ip is not None:
                     self.assertIn(ip.split(".")[0], {"192", "198", "203"})
+
+    def test_source_types_use_shared_architecture_vocabulary(self):
+        generated_source_types = set()
+        for scenario in SCENARIOS:
+            events, _ = generate_synthetic_events(scenario, 18, 3)
+            generated_source_types.update(item.source_type for item in events)
+        self.assertLessEqual(generated_source_types, ARCHITECTURE_SOURCE_TYPES)
+        self.assertIn("file_access", generated_source_types)
+        self.assertIn("process_creation", generated_source_types)
 
     def test_truth_is_separate_and_ids_link_to_candidates(self):
         events, labels = generate_synthetic_events(SCENARIOS[1], 15, 5)
@@ -99,8 +119,8 @@ class DetectionTests(unittest.TestCase):
         ]
         self.assertEqual(detect_suspicious_activity(benign), [])
         normal_file = [
-            event("F1", "2026-01-01T00:00:00Z", "file_modified", SCENARIOS[1], "file_audit_log", host="h", user="u", file_path="/a", process_name="editor", authorized=True),
-            event("F2", "2026-01-01T01:00:00Z", "file_modified", SCENARIOS[1], "file_audit_log", host="h", user="u", file_path="/b", process_name="editor", authorized=True),
+            event("F1", "2026-01-01T00:00:00Z", "file_modified", SCENARIOS[1], "file_access", host="h", user="u", file_path="/a", process_name="editor", authorized=True),
+            event("F2", "2026-01-01T01:00:00Z", "file_modified", SCENARIOS[1], "file_access", host="h", user="u", file_path="/b", process_name="editor", authorized=True),
         ]
         self.assertEqual(detect_suspicious_activity(normal_file), [])
         normal_net = [event("X1", "2026-01-01T00:00:00Z", "network_connection", SCENARIOS[2], "network_flow", host="h", user="u", bytes_sent=1000, destination_ip="192.0.2.1")]
