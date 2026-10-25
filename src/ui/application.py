@@ -8,7 +8,7 @@ import streamlit as st
 from src.common.models import ContractError, SelectionStrategy
 from src.ui.theme import apply_theme, favicon, instrument, page_header, statistic
 from src.ui.live import monitor_snapshot, LOG_PATH
-from src.ui.service import SCENARIOS, build_workspace, case_outputs, load_research_records, preserve_selected
+from src.ui.service import SCENARIOS, build_workspace, build_workspace_from_events, case_outputs, load_research_records, preserve_selected
 from src.readiness.assessment import aggregate_readiness, simulate_readiness_improvement, STATUS_FACTORS
 from src.readiness.selectors import rank_candidates
 from src.forensics.audit import read_audit_trail
@@ -74,6 +74,36 @@ def live_snapshot_panel():
         st.info("Authentication failures observed. No rule threshold met yet.")
     else:
         st.info("Log source connected. Waiting for SSH failed-password records.")
+    if events:
+        ws = build_workspace_from_events(events, budget=10)
+        st.subheader("Forensic readiness / observed evidence")
+        instrument(ws["details"])
+        st.subheader("Priority evidence / adaptive selection")
+        selected = next(item for item in ws["comparisons"] if item.strategy is SelectionStrategy.ADAPTIVE)
+        st.caption(f"Selected {len(selected.selected_evidence_ids)} observed records within {selected.budget} collection cost units.")
+        table([{"evidence_id": item.evidence_id, "source": item.source_type,
+                "collection_cost": item.collection_cost,
+                "priority": "SELECTED" if item.evidence_id in selected.selected_evidence_ids else "NOT SELECTED"}
+               for item in ws["candidates"]])
+        st.subheader("MITRE ATT&CK mappings")
+        table(ws["mappings"])
+        st.subheader("Incident timeline")
+        table([item.to_dict() for item in ws["timeline"][-30:]])
+        if st.button("Preserve prioritized Ubuntu evidence"):
+            reset_vault()
+            st.session_state["live_preserved"] = preserve_selected(ws, SelectionStrategy.ADAPTIVE)
+        preserved = st.session_state.get("live_preserved")
+        if preserved:
+            if st.button("Verify preserved Ubuntu evidence SHA-256"):
+                st.session_state["live_verification"] = preserved.verify()
+            verification = st.session_state.get("live_verification")
+            if verification:
+                st.write(verification)
+            record, report = case_outputs(ws, preserved, verification)
+            st.download_button("Download Ubuntu investigation report", report,
+                               "ubuntu-investigation.md", "text/markdown")
+            st.download_button("Download preserved Ubuntu evidence", preserved.archive(),
+                               "ubuntu-evidence.zip", "application/zip")
     st.subheader("Detection alerts")
     table([alert.to_dict() for alert in alerts])
     st.subheader("Recent authentication events")
