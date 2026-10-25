@@ -4,6 +4,10 @@ on:
     branches: ["feature/ubuntu-live-demo"]
   pull_request:
   workflow_dispatch:
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
 jobs:
   tests:
     runs-on: ubuntu-latest
@@ -33,3 +37,21 @@ jobs:
                       print(f"::error title={case.attrib.get('name','test')}::{message[:3500]}")
           PY
           exit ${result:-0}
+      - name: Post failing test summary to integration PR
+        if: failure() && github.ref == 'refs/heads/feature/ubuntu-live-demo'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          python - <<'PY' > ci-test-summary.txt
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+          root = ET.parse("pytest-results.xml").getroot()
+          print("Automated dashboard regression failures (CI):")
+          for case in root.iter("testcase"):
+              for failure in list(case.findall("failure")) + list(case.findall("error")):
+                  print("\\n" + case.attrib.get("classname", "") + "." + case.attrib.get("name", ""))
+                  print((failure.text or failure.attrib.get("message", ""))[-1800:])
+          PY
+          gh api repos/${{ github.repository }}/issues/7/comments -f body="$(head -c 15000 ci-test-summary.txt)"
+
