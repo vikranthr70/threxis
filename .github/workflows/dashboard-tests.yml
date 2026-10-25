@@ -18,4 +18,18 @@ jobs:
       - name: Compile Python modules
         run: python -m compileall -q app.py src tests
       - name: Run all tests
-        run: python -m pytest -q --tb=short
+        shell: bash
+        run: |
+          python -m pytest -q --tb=short --junitxml=pytest-results.xml || result=$?
+          python - <<'PY'
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+          report = Path("pytest-results.xml")
+          if report.exists():
+              root = ET.parse(report).getroot()
+              for case in root.iter("testcase"):
+                  for fail in list(case.findall("failure")) + list(case.findall("error")):
+                      message = (fail.text or fail.attrib.get("message", "test failure")).replace("\\n", " ")
+                      print(f"::error title={case.attrib.get('name','test')}::{message[:3500]}")
+          PY
+          exit ${result:-0}
