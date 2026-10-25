@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import io
+from dataclasses import fields
 import json
 import tempfile
 import zipfile
@@ -131,9 +132,15 @@ def load_research_records(payload: bytes) -> list[dict]:
             if not line.strip():
                 continue
             raw = json.loads(line)
+            if not isinstance(raw, dict):
+                raise ContractError("Each EvaluationResult JSONL line must be an object")
+            allowed = {field.name for field in fields(EvaluationResult)}
+            unknown = set(raw) - allowed
+            if unknown:
+                raise ContractError(f"Unknown EvaluationResult fields: {sorted(unknown)}")
             raw["strategy"] = SelectionStrategy(raw["strategy"])
             raw["selected_evidence_ids"] = tuple(raw["selected_evidence_ids"])
             output.append(EvaluationResult(**raw).to_dict())
-    except (ValueError, TypeError, KeyError, UnicodeError) as exc:
+    except (ValueError, TypeError, KeyError, UnicodeError, AttributeError) as exc:
         raise ContractError(f"Invalid EvaluationResult JSONL: {exc}") from exc
     return output

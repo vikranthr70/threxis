@@ -49,6 +49,19 @@ class DashboardServiceTests(unittest.TestCase):
         finally:
             preserved.close()
 
+    def test_research_rejects_unknown_fields(self):
+        raw = {"run_id": "saved-1", "strategy": "adaptive",
+               "scenario_id": "potential_exfiltration",
+               "selected_evidence_ids": [], "evidence_recall": None,
+               "evidence_precision": None, "collection_cost": 0,
+               "budget_utilization": 0, "invented_metric": 999}
+        with self.assertRaises(ContractError):
+            load_research_records(json.dumps(raw).encode())
+
+    def test_research_rejects_non_object(self):
+        with self.assertRaises(ContractError):
+            load_research_records(b"[1,2,3]")
+
     def test_research_rejects_invalid_and_preserves_null(self):
         self.assertEqual(load_research_records(b""), [])
         with self.assertRaises(ContractError):

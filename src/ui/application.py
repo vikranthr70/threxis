@@ -151,6 +151,49 @@ def detection(ws):
     table([item.to_dict() for item in ws["events"]])
 
 
+def collection_tape(ws, result):
+    """Cost-proportional candidate ledger, in source order rather than inferred ranking."""
+    from html import escape
+    candidates = ws["candidates"]
+    total = sum(item.collection_cost for item in candidates)
+    if not total:
+        st.info("No candidate collection costs are available.")
+        return
+    selected = set(result.selected_evidence_ids)
+    segments = []
+    for item in candidates:
+        available = ws["flags"][item.evidence_id]
+        chosen = item.evidence_id in selected
+        if chosen and not available:
+            raise ContractError("Selected evidence cannot be unavailable")
+        if chosen:
+            color = "#8cbab1"
+            status = "SELECTED"
+        elif not available:
+            color = "#c76550"
+            status = "UNAVAILABLE"
+        else:
+            color = "#38413a"
+            status = "NOT SELECTED"
+        label = escape(f"{item.evidence_id} | {item.source_type} | cost {item.collection_cost} | {status}", quote=True)
+        segments.append(
+            f'<div title="{label}" aria-label="{label}" '
+            f'style="flex:{item.collection_cost} 0 0;background:{color};'
+            f'min-width:1px;border-right:2px solid #111512;height:32px"></div>'
+        )
+    st.subheader("Collection cost tape")
+    st.caption("Candidates in original source order, sized by collection cost. Teal: selected. "
+               "Red: unavailable. Grey: not selected. This is not a strategy ranking or relevance assessment.")
+    st.markdown('<div role="group" aria-label="Candidate collection cost tape" '
+                'style="display:flex;width:100%;border:1px solid #38413a;overflow:hidden">'
+                + "".join(segments) + '</div>', unsafe_allow_html=True)
+    st.caption(f"Selected cost: {result.selected_cost} / {result.budget} budget units. "
+               f"Candidate pool cost: {total} units.")
+    table([{"Evidence ID": item.evidence_id, "Source": item.source_type,
+            "Cost": item.collection_cost, "Available": ws["flags"][item.evidence_id],
+            "Selected": item.evidence_id in selected} for item in candidates])
+
+
 def prioritization(ws, key, count, seed):
     page_header("04 / COLLECTION PLANNING", "Evidence Prioritization",
                 "Apply a collection budget to five strategies using the same eligible artifacts.")
@@ -172,6 +215,7 @@ def prioritization(ws, key, count, seed):
     with c: statistic("Selected cost / budget", f"{result.selected_cost} / {result.budget}")
     table([{"Strategy": item.strategy.value, "Selected artifacts": len(item.selected_evidence_ids),
             "Cost": item.selected_cost, "Budget": item.budget} for item in ws["comparisons"]])
+    collection_tape(ws, result)
     st.subheader("Candidate ledger")
     table([dict(item.to_dict(), availability="available" if ws["flags"][item.evidence_id] else "unavailable",
                 selected=item.evidence_id in result.selected_evidence_ids) for item in ws["candidates"]])
