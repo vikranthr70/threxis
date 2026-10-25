@@ -1,11 +1,14 @@
 """Behavioral integration tests over actual engines and Streamlit reruns."""
 import json
 import unittest
+import tempfile
+from unittest.mock import patch
 from pathlib import Path
 
 from streamlit.testing.v1 import AppTest
 from src.common.models import ContractError, SelectionStrategy
 from src.readiness.assessment import assess_readiness_details, simulate_readiness_improvement
+from src.ui.live import monitor_snapshot
 from src.ui.service import (SCENARIOS, build_workspace, case_outputs, load_research_records,
                             preserve_selected)
 
@@ -60,93 +63,74 @@ class DashboardServiceTests(unittest.TestCase):
 
 
 class DashboardInteractionTests(unittest.TestCase):
+    """Exercise the six operational pages with actual parsed Ubuntu log fixtures."""
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.path = Path(self.temp.name) / "ubuntu-auth.log"
+
+    def write_failures(self, count=3):
+        self.path.write_text("".join(
+            f"2026-10-25T10:00:{i:02d}+00:00 ubuntu sshd[101]: "
+            f"Failed password for invalid user lab from 127.0.0.1 port 55000 ssh2\\n"
+            for i in range(count)
+        ), encoding="utf-8")
+
     def app(self):
-        return AppTest.from_file(str(APP), default_timeout=30).run()
+        with patch("src.ui.application.monitor_snapshot", side_effect=lambda: monitor_snapshot(self.path)):
+            return AppTest.from_file(str(APP), default_timeout=30).run()
+
+    def navigate(self, app, page):
+        with patch("src.ui.application.monitor_snapshot", side_effect=lambda: monitor_snapshot(self.path)):
+            return app.radio(key="navigation").set_value(page).run()
 
     def assert_clean(self, app):
         self.assertFalse(list(app.exception), str(list(app.exception)))
         self.assertFalse(list(app.error), str(list(app.error)))
 
-    def test_every_page_renders(self):
+    def test_waiting_state_has_no_fabricated_score(self):
         app = self.app()
         self.assert_clean(app)
-        for page in ["Forensic Readiness", "Threat Detection", "Evidence Prioritization",
-                     "Incident Investigation", "Evidence Vault", "Research Evaluation",
-                     "Launch Status", "Privacy Policy", "Terms and Conditions"]:
-            app.radio(key="navigation").set_value(page).run()
-            self.assertFalse(list(app.exception), page)
-            if page != "Launch Status":
-                self.assert_clean(app)
+        self.assertEqual(app.radio(key="navigation").value, "Command Center")
+        self.assertTrue(any("No Ubuntu SSH failure records" in item.message for item in app.info))
 
-    def test_scenario_switching_and_simulation(self):
+    def test_six_operational_pages_render_from_real_log_fixture(self):
+        self.write_failures()
         app = self.app()
-        app.radio(key="navigation").set_value("Forensic Readiness").run()
-        app.selectbox(key="scenario").set_value("potential_exfiltration").run()
         self.assert_clean(app)
-        self.assertEqual(app.selectbox(key="inspect_potential_exfiltration").value, "network_flow")
-        app.selectbox(key="sim_source_potential_exfiltration").set_value("dns_log").run()
-        app.selectbox(key="sim_status_potential_exfiltration_dns_log").set_value("validated").run()
-        self.assert_clean(app)
-        ws = build_workspace("potential_exfiltration")
-        simulation = simulate_readiness_improvement(ws["profile"], ws["statuses"], {"dns_log": "validated"})
-        self.assertGreater(simulation["percentage_point_difference"], 0)
-        self.assertNotIn("dns_log", ws["statuses"])
-
-    def test_budget_and_exclusions_survive_navigation(self):
-        app = self.app()
-        app.radio(key="navigation").set_value("Evidence Prioritization").run()
-        app.number_input(key="_budget").set_value(0).run()
-        artifact = build_workspace("suspicious_authentication")["candidates"][0].evidence_id
-        app.multiselect(key="_unavailable").set_value([artifact]).run()
-        app.radio(key="navigation").set_value("Evidence Vault").run()
-        self.assert_clean(app)
-        self.assertTrue(app.button[0].disabled)
-        app.radio(key="navigation").set_value("Evidence Prioritization").run()
-        self.assertEqual(app.number_input(key="_budget").value, 0)
-        self.assertEqual(app.multiselect(key="_unavailable").value, [artifact])
-
-    def test_vault_and_investigation_controls(self):
-        app = self.app()
-        app.radio(key="navigation").set_value("Evidence Vault").run()
-        app.button[0].click().run()
-        self.assert_clean(app)
-        app.button[1].click().run()
-        self.assert_clean(app)
-        self.assertGreater(app.session_state["verification"]["valid"], 0)
-        app.radio(key="navigation").set_value("Incident Investigation").run()
-        self.assert_clean(app)
-        app.selectbox(key="scenario").set_value("potential_exfiltration").run()
-        self.assertNotIn("preserved", app.session_state)
-
-    def test_legal_deep_link(self):
-        app = AppTest.from_file(str(APP), default_timeout=30)
-        app.query_params["page"] = "Privacy Policy"
-        app.run()
-        self.assert_clean(app)
-        self.assertEqual(app.radio(key="navigation").value, "Privacy Policy")
-
-    def test_filters_and_each_strategy(self):
-        app = self.app()
-        app.radio(key="navigation").set_value("Threat Detection").run()
-        app.multiselect[0].set_value([]).run()
-        self.assert_clean(app)
-        self.assertTrue(any("No records" in item.value for item in app.info))
-        app.radio(key="navigation").set_value("Evidence Prioritization").run()
-        for strategy in SelectionStrategy:
-            app.selectbox(key="strategy").set_value(strategy.value).run()
+        pages = ["Command Center", "Forensic Readiness", "Threat Detection",
+                 "Evidence Prioritization", "Incident Investigation", "Evidence Vault"]
+        self.assertEqual(list(app.radio(key="navigation").options), pages)
+        for page in pages:
+            app = self.navigate(app, page)
             self.assert_clean(app)
-        app.selectbox(key="scenario").set_value("suspicious_file_modification").run()
+
+    def test_evidence_budget_and_exclusions(self):
+        self.write_failures()
+        app = self.navigate(self.app(), "Evidence Prioritization")
         self.assert_clean(app)
-        app.number_input(key="seed").set_value(41).run()
-        app.select_slider(key="count").set_value(6).run()
+        with patch("src.ui.application.monitor_snapshot", side_effect=lambda: monitor_snapshot(self.path)):
+            app.number_input(key="_budget").set_value(0).run()
+        self.assert_clean(app)
+        self.assertEqual(app.number_input(key="_budget").value, 0)
+        app = self.navigate(app, "Evidence Vault")
         self.assert_clean(app)
 
-    def test_unknown_page_falls_back_to_overview(self):
-        app = AppTest.from_file(str(APP), default_timeout=30)
-        app.query_params["page"] = "nonexistent"
-        app.run()
+    def test_no_synthetic_controls_in_sidebar(self):
+        self.write_failures()
+        app = self.app()
         self.assert_clean(app)
-        self.assertEqual(app.radio(key="navigation").value, "Live Ubuntu Monitor")
+        self.assertFalse(any(item.key == "seed" for item in app.number_input))
+        self.assertFalse(any(item.key == "scenario" for item in app.selectbox))
+
+    def test_unknown_page_falls_back_to_command_center(self):
+        with patch("src.ui.application.monitor_snapshot", side_effect=lambda: monitor_snapshot(self.path)):
+            app = AppTest.from_file(str(APP), default_timeout=30)
+            app.query_params["page"] = "nonexistent"
+            app.run()
+        self.assert_clean(app)
+        self.assertEqual(app.radio(key="navigation").value, "Command Center")
 
 
 if __name__ == "__main__":
