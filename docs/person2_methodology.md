@@ -38,3 +38,7 @@ Person 2 tests use seeded fixtures and temporary directories. They cover determi
 ## Assumptions and limitations
 
 This is a small research demonstration, not an endpoint sensor or production forensic acquisition tool. Event attributes and rules are synthetic conventions. Alert thresholds have not been tuned against real telemetry; no precision, recall, or real-world attack detection claim is made. The report's source facts are limited to supplied synthetic records. The local custody log can be altered, and filesystem behavior and permissions depend on the host. The Architecture Pack v1.2 and adapted `TEAM_CONTRACT.md` were reviewed. This function supplies only the three user-facing detection demo scenarios; the pack's phase-pair experiment instances remain a separate scientific-runner responsibility.
+
+## Integration upgrade
+
+`generate_multistage_demonstration()` combines the three existing scenarios into a clearly labelled artificial sequence while preserving the original generator signature and separate labels. Correlation groups events by host/account and reports rule support rather than asserting compromise. Vault batch verification distinguishes valid, modified, missing, invalid-manifest, and orphan artifacts. Verification actions can be appended to an ordinary JSONL audit trail; it is operationally append-only but neither immutable nor tamper-proof. Case records and Markdown reports accept deterministic correlation and verification summaries.

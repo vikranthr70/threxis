@@ -8,7 +8,7 @@ from src.common.models import ContractError, DetectionAlert, ThreatMapping, Thre
 from .catalog import get_technique
 
 _RULES = {
-    "T1110": (("brute force", "repeated login", "multiple failed", "many authentication failure"), (), 0.70, "possible"),
+    "T1110": (("brute force", "repeated login", "multiple failed", "many authentication failure", "failed ssh password"), (), 0.70, "possible"),
     "T1110.001": (("password guess", "common password", "iterative login"), (), 0.90, "strongly_supported"),
     "T1059.001": (("powershell",), ("script", "command", "encoded", "execute", "download"), 0.90, "strongly_supported"),
     "T1003.001": (("lsass",), ("memory", "dump", "credential"), 0.90, "strongly_supported"),

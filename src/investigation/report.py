@@ -15,6 +15,8 @@ def build_investigation_case_record(
     alerts: Sequence[DetectionAlert],
     timeline: Sequence[TimelineEntry],
     manifests: Sequence[EvidenceManifest] = (),
+    correlations: Sequence[dict[str, object]] = (),
+    verification_summary: dict[str, object] | None = None,
 ) -> dict[str, object]:
     """Return a JSON-compatible structured case with facts and hypotheses split."""
     event_ids = {event.event_id for event in events}
@@ -26,6 +28,10 @@ def build_investigation_case_record(
         "timeline": [entry.to_dict() for entry in timeline],
         "evidence_manifests": [manifest.to_dict() for manifest in sorted(manifests, key=lambda item: item.evidence_id)],
         "missing_evidence_ids": sorted(event_ids - preserved),
+        "correlated_event_groups": list(correlations),
+        "evidence_verification_status": verification_summary,
+        "limitations": ["Synthetic records only.", "Alerts and correlations are hypotheses, not proof.",
+                        "Local custody logs are not tamper-proof."],
     }
 
 def generate_markdown_report(
@@ -34,6 +40,8 @@ def generate_markdown_report(
     alerts: Sequence[DetectionAlert],
     timeline: Sequence[TimelineEntry],
     manifests: Sequence[EvidenceManifest] = (),
+    correlations: Sequence[dict[str, object]] = (),
+    verification_summary: dict[str, object] | None = None,
 ) -> str:
     """Render an evidence-linked report; alerts remain hypotheses, not findings."""
     event_ids = {event.event_id for event in events}
@@ -66,6 +74,14 @@ def generate_markdown_report(
     else:
         lines.append("- No evidence manifests were supplied.")
     lines.append(f"- Event records without a matching preserved evidence ID: {', '.join(f'`{item}`' for item in missing) if missing else 'none'}.")
+    lines.extend(["", "## Correlated event groups", ""])
+    if correlations:
+        for item in sorted(correlations, key=lambda row: str(row.get("correlation_id", ""))):
+            lines.append(f"- `{item.get('correlation_id')}`: {item.get('explanation')} Support: `{item.get('rule_support_level')}`.")
+    else:
+        lines.append("- No event correlations were supplied.")
+    lines.extend(["", "## Evidence verification status", ""])
+    lines.append(f"- `{verification_summary}`" if verification_summary is not None else "- No batch verification summary was supplied.")
     lines.extend(["", "## Timeline", ""])
     if timeline:
         for entry in sorted(timeline, key=lambda item: (item.timestamp, item.entry_type, item.related_ids)):

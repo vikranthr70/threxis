@@ -91,3 +91,9 @@ For richer JSON, use `explain_attack_mappings()`, `assess_readiness_details()`, 
 - ATT&CK changes over time; versions and retrieval dates must be rechecked before publication.
 - A hash confirms byte identity, not forensic provenance or legal admissibility.
 
+## Integration upgrade
+
+The threat-agnostic baseline now reads the un-noised `weights` section of `data/config/context_priors.example.json`; it never reads the independently authored truth probability model. `ContextSelectionState` makes shift semantics explicit: adaptive selection receives current context while frozen-context selection retains initial context. The compatibility comparison filters one validated availability map before all five strategies and independently checks selected cost.
+
+Detailed readiness output distinguishes available, collected, validated, missing, unknown, and not-applicable without expanding the shared three-value availability enum. Cross-scenario readiness, when requested, is an explicitly labelled unweighted arithmetic mean. Improvement simulation, severity-aware ranking, and context-change analysis are deterministic advisory extensions. Severity-aware ranking is opt-in and is not one of the five research baselines.
+

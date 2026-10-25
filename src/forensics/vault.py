@@ -168,6 +168,11 @@ def verify_evidence_vault(directory: Path) -> dict[str, object]:
             results.append({"path": str(artifact), "status": "missing"})
         except (ContractError, OSError):
             results.append({"manifest_path": str(manifest_path), "status": "invalid_manifest"})
+    manifested = {path.name.removesuffix(".manifest.json") for path in manifests}
+    ignored = {"custody.jsonl", "verification-audit.jsonl"}
+    for artifact in sorted((path for path in directory.iterdir() if path.is_file() and path.name not in ignored
+                            and not path.name.endswith(".manifest.json") and path.name not in manifested), key=lambda path: path.name):
+        results.append({"path": str(artifact), "status": "invalid_manifest", "reason": "artifact has no manifest"})
     return {"directory": str(directory.resolve()), "results": results,
             "valid": sum(item["status"] == "valid" for item in results),
             "modified": sum(item["status"] == "modified" for item in results),
