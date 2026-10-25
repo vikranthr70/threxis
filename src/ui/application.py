@@ -356,9 +356,19 @@ def main():
         st.divider()
         st.caption("SOURCE / UBUNTU VIRTUALBOX")
         st.caption("Real SSH authentication observations. No synthetic controls.")
+    forensic_live_page(page)
+
+
+@st.fragment(run_every="3s")
+def forensic_live_page(page):
+    """Rerun operational forensic panels as the Ubuntu log file changes."""
     try:
         snapshot = monitor_snapshot()
         events = snapshot["events"]
+        signature = tuple((event.event_id, event.timestamp) for event in events)
+        if st.session_state.get("live_event_signature") != signature:
+            reset_vault()
+            st.session_state["live_event_signature"] = signature
         if not events:
             page_header("THREXIS / FORENSIC READINESS", "Awaiting Ubuntu evidence", "The forensic dashboard will process real authentication events from your VM.")
             st.info("No Ubuntu SSH failure records yet. Readiness and alerts are unavailable until evidence arrives.")
