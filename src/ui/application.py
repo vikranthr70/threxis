@@ -11,6 +11,7 @@ from src.ui.live import monitor_snapshot, LOG_PATH
 from src.ui.service import SCENARIOS, build_workspace, build_workspace_from_events, case_outputs, load_research_records, preserve_selected
 from src.readiness.assessment import aggregate_readiness, assess_readiness_details, simulate_readiness_improvement, STATUS_FACTORS
 from src.threat_intel.profiles import get_threat_profile
+from src.threat_intel.catalog import get_technique
 from src.readiness.selectors import rank_candidates
 from src.forensics.audit import read_audit_trail
 
@@ -126,6 +127,24 @@ def live_monitor():
     live_snapshot_panel()
 
 
+def attack_intelligence(profile, mappings=()):
+    """Show MITRE ATT&CK context separately from observed behavioral mappings."""
+    st.subheader("MITRE ATT&CK / threat intelligence")
+    st.caption("ATT&CK technique context comes from the configured threat profile. "
+               "Only alert-supported behavioral mappings are marked OBSERVED CANDIDATE; "
+               "neither category proves compromise.")
+    supported = {row["technique_id"] for row in mappings}
+    table([{"Technique": technique_id,
+            "Name": get_technique(technique_id).name,
+            "Tactics": ", ".join(get_technique(technique_id).tactics),
+            "Assessment": "OBSERVED CANDIDATE" if technique_id in supported else "PROFILE CONTEXT",
+            "MITRE reference": get_technique(technique_id).official_url}
+           for technique_id in profile.technique_ids])
+    if mappings:
+        st.caption("Alert-supported technique mapping details")
+        table(list(mappings))
+
+
 def overview(ws):
     page_header("01 / OVERVIEW", "Evidence before conclusions.",
                 "Assess forensic readiness from Ubuntu observations, prioritize evidence, and investigate.")
@@ -144,6 +163,8 @@ def overview(ws):
         with b: statistic("Unknown sources", len(ws["details"]["unknown_evidence"]))
         st.write("Readiness reflects observed evidence availability and unknown sources.")
         st.caption("Inspect source requirements in Forensic Readiness, then apply a collection budget in Evidence Prioritization.")
+    st.divider()
+    attack_intelligence(ws["profile"], ws["mappings"])
     st.divider()
     columns = st.columns(3, gap="large")
     for col, index, title, text in zip(columns, ["01", "02", "03"],
@@ -383,11 +404,7 @@ def forensic_live_page(page):
             with left:
                 instrument(details)
             with right:
-                st.subheader("Threat intelligence / configured context")
-                st.write("**Suspicious authentication**")
-                st.caption("MITRE ATT&CK techniques associated with this threat profile. These are configured candidates, not detected attacks.")
-                table([{"ATT&CK technique ID": technique, "Status": "PROFILE CONTEXT / NOT DETECTED"}
-                       for technique in profile.technique_ids])
+                attack_intelligence(profile)
                 statistic("Observed SSH failures", 0)
                 statistic("Confirmed rule alerts", 0)
             st.subheader("Evidence collection priorities")
