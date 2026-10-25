@@ -1,0 +1,14 @@
+{
+  "source": "MITRE ATT&CK Enterprise",
+  "source_repository": "https://github.com/mitre-attack/attack-stix-data",
+  "attack_dataset_version": "20.0",
+  "retrieved_at": "2026-10-25",
+  "techniques": [
+    {"technique_id":"T1110","name":"Brute Force","tactics":["Credential Access"],"summary":"Systematic or repetitive credential guessing used to obtain account access.","official_url":"https://attack.mitre.org/techniques/T1110/","technique_version":"2.8","revoked":false,"deprecated":false},
+    {"technique_id":"T1110.001","name":"Password Guessing","tactics":["Credential Access"],"summary":"Guessing passwords without prior knowledge, often producing repeated authentication failures.","official_url":"https://attack.mitre.org/techniques/T1110/001/","technique_version":"1.7","revoked":false,"deprecated":false},
+    {"technique_id":"T1059.001","name":"PowerShell","tactics":["Execution"],"summary":"Use or abuse of PowerShell commands, scripts, or automation interfaces for execution.","official_url":"https://attack.mitre.org/techniques/T1059/001/","technique_version":"1.6","revoked":false,"deprecated":false},
+    {"technique_id":"T1003.001","name":"LSASS Memory","tactics":["Credential Access"],"summary":"Attempting to access credential material in LSASS process memory.","official_url":"https://attack.mitre.org/techniques/T1003/001/","technique_version":"1.5","revoked":false,"deprecated":false},
+    {"technique_id":"T1041","name":"Exfiltration Over C2 Channel","tactics":["Exfiltration"],"summary":"Stealing data through an existing command-and-control communications channel.","official_url":"https://attack.mitre.org/techniques/T1041/","technique_version":"2.4","revoked":false,"deprecated":false}
+  ]
+}
+
