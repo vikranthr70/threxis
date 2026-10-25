@@ -93,7 +93,7 @@ class DashboardInteractionTests(unittest.TestCase):
         app = self.app()
         self.assert_clean(app)
         self.assertEqual(app.radio(key="navigation").value, "Command Center")
-        self.assertTrue(any("No Ubuntu SSH failure records" in item.message for item in app.info))
+        self.assertTrue(any("Awaiting Ubuntu SSH authentication evidence" in str(item.proto) for item in app.info))
 
     def test_six_operational_pages_render_from_real_log_fixture(self):
         self.write_failures()
