@@ -36,6 +36,16 @@ def build_workspace(scenario: str, count: int = 18, seed: int = 25,
     """Generate one explicit demonstration; truth is discarded before any operational step."""
     events, _labels = generate_synthetic_events(scenario, count, seed)
     del _labels
+    return build_workspace_from_events(events, unavailable_ids, budget, seed, source_mode="synthetic")
+
+
+def build_workspace_from_events(events, unavailable_ids=(), budget=10, seed=25, source_mode="ubuntu_live"):
+    """Run the same readiness, selection and forensic pipeline on observed events."""
+    if not events:
+        raise ContractError("No events available for forensic assessment")
+    scenario = events[0].scenario_id
+    if any(item.scenario_id != scenario for item in events):
+        raise ContractError("A workspace must contain events from one scenario")
     candidates, observations = evidence_inputs_from_events(events)
     unknown = set(unavailable_ids) - {item.event_id for item in events}
     if unknown:
@@ -54,7 +64,7 @@ def build_workspace(scenario: str, count: int = 18, seed: int = 25,
     comparisons = compare_available_selection_strategies(candidates, profile, budget, seed, flags)
     case = InvestigationCase(f"CASE-{scenario.upper()}-{seed}", scenario,
                              tuple(item.alert_id for item in alerts), events[0].timestamp)
-    return {"scenario": scenario, "seed": seed, "events": events, "candidates": candidates,
+    return {"scenario": scenario, "seed": seed, "source_mode": source_mode, "events": events, "candidates": candidates,
             "observations": observations, "flags": flags, "source_trace": trace,
             "profile": profile, "statuses": statuses, "alerts": alerts,
             "mappings": explain_attack_mappings(mappings),
