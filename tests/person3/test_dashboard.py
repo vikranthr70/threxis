@@ -146,7 +146,7 @@ class DashboardInteractionTests(unittest.TestCase):
         app.query_params["page"] = "nonexistent"
         app.run()
         self.assert_clean(app)
-        self.assertEqual(app.radio(key="navigation").value, "Command Center")
+        self.assertEqual(app.radio(key="navigation").value, "Live Ubuntu Monitor")
 
 
 if __name__ == "__main__":
