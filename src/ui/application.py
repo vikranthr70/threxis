@@ -14,9 +14,7 @@ from src.readiness.selectors import rank_candidates
 from src.forensics.audit import read_audit_trail
 
 ROOT = Path(__file__).resolve().parents[2]
-PAGES = ["Command Center", "Forensic Readiness", "Threat Detection", "Evidence Prioritization",
-         "Incident Investigation", "Evidence Vault", "Live Ubuntu Monitor", "Research Evaluation", "Launch Status",
-         "Privacy Policy", "Terms and Conditions"]
+PAGES = ["Command Center", "Forensic Readiness", "Threat Detection", "Evidence Prioritization", "Incident Investigation", "Evidence Vault"]
 
 
 def table(rows):
@@ -133,16 +131,16 @@ def overview(ws):
     with left:
         instrument(ws["details"])
     with right:
-        st.markdown('<div class="eyebrow">CURRENT CASE / SYNTHETIC</div>', unsafe_allow_html=True)
+        st.markdown('<div class="eyebrow">CURRENT CASE / UBUNTU VM</div>', unsafe_allow_html=True)
         st.subheader(SCENARIOS[ws["scenario"]])
         st.caption(ws["case"].case_id)
         a, b = st.columns(2)
-        with a: statistic("Generated events", len(ws["events"]))
+        with a: statistic("Observed events", len(ws["events"]))
         with b: statistic("Heuristic alerts", len(ws["alerts"]))
         a, b = st.columns(2)
         with a: statistic("Supported mappings", len(ws["mappings"]))
         with b: statistic("Unknown sources", len(ws["details"]["unknown_evidence"]))
-        st.write("Every value comes from the current synthetic workspace. Readiness describes source preparedness for this scenario.")
+        st.write("Readiness reflects observed evidence availability and unknown sources.")
         st.caption("Inspect source requirements in Forensic Readiness, then apply a collection budget in Evidence Prioritization.")
     st.divider()
     columns = st.columns(3, gap="large")
@@ -213,14 +211,14 @@ def readiness(ws, count, seed):
 
 def detection(ws):
     page_header("03 / SIGNAL REVIEW", "Threat Detection",
-                "Inspect heuristic alerts and supported MITRE ATT&CK candidates from the current synthetic records.")
+                "Inspect observed Ubuntu events and supported MITRE ATT&CK candidates.")
     levels = st.multiselect("Filter alert severity", ["low", "medium", "high", "critical"],
                             default=["low", "medium", "high", "critical"])
     table([item.to_dict() for item in ws["alerts"] if item.severity.value in levels])
     st.subheader("MITRE ATT&CK candidates")
     table(ws["mappings"])
     st.caption("Only supported backend rules emit mappings. No mapping is a valid outcome. Confidence describes ordinal rule support.")
-    st.subheader("Synthetic event records")
+    st.subheader("Observed event records")
     table([item.to_dict() for item in ws["events"]])
 
 
@@ -236,7 +234,8 @@ def prioritization(ws, key, count, seed):
                    default=preferences.get(key, []), key="_unavailable", on_change=store_unavailable)
     st.number_input("Collection budget (cost units)", min_value=0, max_value=1000,
                     value=preferences.get("budget", 10), step=1, key="_budget", on_change=store_budget)
-    ws, _ = workspace(ws["scenario"], count, seed)
+    if ws.get("source_mode") != "ubuntu_live":
+        ws, _ = workspace(ws["scenario"], count, seed)
     name = st.selectbox("Inspect strategy", [item.value for item in SelectionStrategy], key="strategy")
     result = next(item for item in ws["comparisons"] if item.strategy.value == name)
     a, b, c = st.columns(3)
@@ -360,34 +359,26 @@ def main():
         page = st.radio("Workstation navigation", PAGES, index=PAGES.index(requested) if requested in PAGES else 0,
                         key="navigation", label_visibility="collapsed")
         st.divider()
-        st.caption("FORENSIC DEMONSTRATION CONTEXT")
-        with st.expander("Synthetic demonstration controls", expanded=page != "Live Ubuntu Monitor"):
-            scenario = st.selectbox("Threat scenario", list(SCENARIOS), format_func=SCENARIOS.get, key="scenario")
-        with st.expander("Advanced: reproducible synthetic data", expanded=False):
-            seed = int(st.number_input("Synthetic seed", min_value=0, max_value=1000000, value=25, step=1, key="seed"))
-        count = st.select_slider("Event count", options=[6, 12, 18, 24, 36], value=18, key="count")
-        if page != "Live Ubuntu Monitor":
-            st.caption("Synthetic settings do not affect live Ubuntu monitoring.")
-        st.markdown('<div class="launch">NOT READY FOR PUBLIC LAUNCH<br>Local development / academic use</div>', unsafe_allow_html=True)
+        st.caption("SOURCE / UBUNTU VIRTUALBOX")
+        st.caption("Real SSH authentication observations. No synthetic controls.")
     try:
-        if page in ("Privacy Policy", "Terms and Conditions"):
-            page_header("LEGAL / REVIEW DRAFT", page, "Draft for human review before any public launch.")
-            st.warning("HUMAN REVIEW PENDING. Operator, contact, jurisdiction, and hosting terms must be completed before publication.")
-            path = "privacy.md" if page == "Privacy Policy" else "terms.md"
-            st.markdown((ROOT / "docs" / "legal" / path).read_text(encoding="utf-8"))
-        elif page == "Live Ubuntu Monitor": live_monitor()
-        elif page == "Research Evaluation": research()
-        elif page == "Launch Status": launch()
+        snapshot = monitor_snapshot()
+        events = snapshot["events"]
+        if not events:
+            page_header("THREXIS / FORENSIC READINESS", "Awaiting Ubuntu evidence", "The forensic dashboard will process real authentication events from your VM.")
+            st.info("No Ubuntu SSH failure records yet. Readiness and alerts are unavailable until evidence arrives.")
+            st.caption("Log path: data/live/ubuntu-auth.log. See docs/ubuntu-live-demo.md.")
+            table([{"Forensic capability": name, "Status": "Waiting for evidence"} for name in PAGES])
         else:
-            ws, unavailable_key = workspace(scenario, count, seed)
+            ws = build_workspace_from_events(events, budget=int(st.session_state.get("workspace_preferences", {}).get("budget", 10)))
+            st.caption("SOURCE: UBUNTU VM / OBSERVED AUTHENTICATION LOGS")
             if page == "Command Center": overview(ws)
-            elif page == "Forensic Readiness": readiness(ws, count, seed)
+            elif page == "Forensic Readiness": readiness(ws, len(events), 0)
             elif page == "Threat Detection": detection(ws)
-            elif page == "Evidence Prioritization": prioritization(ws, unavailable_key, count, seed)
+            elif page == "Evidence Prioritization": prioritization(ws, "live_unavailable", len(events), 0)
             elif page == "Incident Investigation": investigation(ws)
             elif page == "Evidence Vault": vault(ws)
     except (ContractError, OSError, ValueError) as exc:
         st.error(f"Unable to complete this operation: {exc}")
         st.caption("The operation failed. Adjust the inputs or inspect the local server logs.")
-    st.markdown('<div class="footer">THREXIS / SYNTHETIC FORENSIC RESEARCH<br>Readiness is a preparedness indicator. Alerts remain investigative hypotheses.</div>', unsafe_allow_html=True)
-    st.markdown("[Privacy Policy](?page=Privacy%20Policy) · [Terms and Conditions](?page=Terms%20and%20Conditions) · [Launch Status](?page=Launch%20Status)")
+    st.caption("THREXIS / LIVE FORENSIC READINESS / LOCAL ACADEMIC DEMONSTRATION")
