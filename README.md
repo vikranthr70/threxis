@@ -21,3 +21,14 @@ python -m unittest discover -s tests -p "test_*.py" -v
 
 Only synthetic data is permitted. Do not use real credentials, malware, attacks, endpoint monitoring, paid APIs, or cloud services.
 
+## Forensic research workstation
+
+The Streamlit dashboard is available on `feature/forensic-dashboard`, based on the Person 1/Person 2 integration branch.
+
+```text
+python -m pip install -r requirements.txt
+python -m streamlit run app.py
+```
+
+Open http://127.0.0.1:8501. See [dashboard documentation](docs/dashboard.md) for features, actual tests, data handling, and launch requirements. Public launch status: **NOT READY FOR PUBLIC LAUNCH**. Domain verification, human legal review, and desktop/mobile browser inspection remain incomplete.
+
