@@ -9,7 +9,8 @@ from src.common.models import ContractError, SelectionStrategy
 from src.ui.theme import apply_theme, favicon, instrument, page_header, statistic
 from src.ui.live import monitor_snapshot, LOG_PATH
 from src.ui.service import SCENARIOS, build_workspace, build_workspace_from_events, case_outputs, load_research_records, preserve_selected
-from src.readiness.assessment import aggregate_readiness, simulate_readiness_improvement, STATUS_FACTORS
+from src.readiness.assessment import aggregate_readiness, assess_readiness_details, simulate_readiness_improvement, STATUS_FACTORS
+from src.threat_intel.profiles import get_threat_profile
 from src.readiness.selectors import rank_candidates
 from src.forensics.audit import read_audit_trail
 
@@ -373,21 +374,31 @@ def forensic_live_page(page):
             st.session_state["workspace_preferences"] = {"budget": int(st.session_state.get("workspace_preferences", {}).get("budget", 10))}
             st.session_state["live_event_signature"] = signature
         if not events:
+            profile = get_threat_profile("suspicious_authentication")
+            details = assess_readiness_details(profile, {})
             page_header("THREXIS / FORENSIC READINESS", page,
-                        "Forensic investigation workstation / Ubuntu VirtualBox telemetry")
-            st.info("Awaiting Ubuntu SSH authentication evidence. Live assessment starts when log records arrive.")
-            first, second, third = st.columns(3)
-            with first: statistic("Observed events", 0)
-            with second: statistic("Detection alerts", 0)
-            with third: statistic("Readiness score", "NOT ASSESSED")
-            st.subheader("Evidence readiness / source coverage")
-            table([{"Evidence source": source.replace("_", " ").title(), "Status": "UNKNOWN / NOT OBSERVED",
-                    "Readiness contribution": "Not assessed"} for source in
-                   ("authentication_log", "process_creation", "network_flow", "powershell_log")])
-            st.subheader("Incident workflow")
-            table([{"Stage": name, "Status": "Waiting for observed VM records"} for name in PAGES])
-            st.caption("Expected log: data/live/ubuntu-auth.log. A readiness percentage cannot be "
-                       "calculated from an empty feed without inventing evidence. See docs/ubuntu-live-demo.md.")
+                        "Live Ubuntu investigation / threat-informed evidence preparedness")
+            st.warning("AWAITING UBUNTU LOGS. The score below is a baseline with all evidence sources UNKNOWN, not a live observation.")
+            left, right = st.columns([1.4, 1], gap="large")
+            with left:
+                instrument(details)
+            with right:
+                st.subheader("Threat intelligence / configured context")
+                st.write("**Suspicious authentication**")
+                st.caption("MITRE ATT&CK techniques associated with this threat profile. These are configured candidates, not detected attacks.")
+                table([{"ATT&CK technique ID": technique, "Status": "PROFILE CONTEXT / NOT DETECTED"}
+                       for technique in profile.technique_ids])
+                statistic("Observed SSH failures", 0)
+                statistic("Confirmed rule alerts", 0)
+            st.subheader("Evidence collection priorities")
+            gaps = {row["source_type"]: row["weighted_gap"] for row in details["weighted_readiness_gaps"]}
+            table([{"Evidence source": row["source_type"].replace("_", " ").title(),
+                    "Threat weight": row["weight"], "Status": row["status"].upper(),
+                    "Weighted gap": gaps[row["source_type"]], "Collection": "Awaiting VM evidence"}
+                   for row in sorted(details["requirements"], key=lambda row: -gaps[row["source_type"]])])
+            st.subheader("Investigation and preservation")
+            st.info("Timeline, evidence selection, case report, and SHA-256 preservation activate when real Ubuntu authentication records arrive.")
+            st.caption("Log input: data/live/ubuntu-auth.log. See docs/ubuntu-live-demo.md. No synthetic events or detected attacks are fabricated.")
         else:
             ws = build_workspace_from_events(events, budget=int(st.session_state.get("workspace_preferences", {}).get("budget", 10)))
             st.caption("SOURCE: UBUNTU VM / OBSERVED AUTHENTICATION LOGS")
