@@ -14,8 +14,8 @@ from src.readiness.selectors import rank_candidates
 from src.forensics.audit import read_audit_trail
 
 ROOT = Path(__file__).resolve().parents[2]
-PAGES = ["Live Ubuntu Monitor", "Command Center", "Forensic Readiness", "Threat Detection", "Evidence Prioritization",
-         "Incident Investigation", "Evidence Vault", "Research Evaluation", "Launch Status",
+PAGES = ["Command Center", "Forensic Readiness", "Threat Detection", "Evidence Prioritization",
+         "Incident Investigation", "Evidence Vault", "Live Ubuntu Monitor", "Research Evaluation", "Launch Status",
          "Privacy Policy", "Terms and Conditions"]
 
 
@@ -350,7 +350,7 @@ def launch():
 
 
 def main():
-    st.set_page_config(page_title="THREXIS | Forensic Research", page_icon=favicon(),
+    st.set_page_config(page_title="THREXIS | Forensic Readiness", page_icon=favicon(),
                        layout="wide", initial_sidebar_state="auto")
     apply_theme()
     with st.sidebar:
@@ -360,7 +360,7 @@ def main():
         page = st.radio("Workstation navigation", PAGES, index=PAGES.index(requested) if requested in PAGES else 0,
                         key="navigation", label_visibility="collapsed")
         st.divider()
-        st.caption("DEMONSTRATION CONTEXT")
+        st.caption("FORENSIC DEMONSTRATION CONTEXT")
         with st.expander("Synthetic demonstration controls", expanded=page != "Live Ubuntu Monitor"):
             scenario = st.selectbox("Threat scenario", list(SCENARIOS), format_func=SCENARIOS.get, key="scenario")
         with st.expander("Advanced: reproducible synthetic data", expanded=False):
