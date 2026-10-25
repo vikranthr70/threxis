@@ -126,7 +126,7 @@ def live_monitor():
 
 def overview(ws):
     page_header("01 / OVERVIEW", "Evidence before conclusions.",
-                "Assess forensic readiness, examine synthetic threats, and preserve the evidence that supports an investigation.")
+                "Assess forensic readiness from Ubuntu observations, prioritize evidence, and investigate.")
     left, right = st.columns([1.35, 1], gap="large")
     with left:
         instrument(ws["details"])
@@ -148,7 +148,7 @@ def overview(ws):
             ["Assess the sources", "Select within budget", "Preserve and examine"],
             ["Inspect status factors, source contributions, and weighted gaps for the active threat context.",
              "Compare five strategies using the same eligible artifacts and collection costs.",
-             "Copy synthetic records, verify SHA-256, and export an evidence-linked case report."]):
+             "Preserve observed event records, verify SHA-256, and export an evidence-linked case report."]):
         with col:
             st.markdown(f'<div class="index-number">{index}</div>', unsafe_allow_html=True)
             st.subheader(title)
@@ -225,12 +225,12 @@ def detection(ws):
 def prioritization(ws, key, count, seed):
     page_header("04 / COLLECTION PLANNING", "Evidence Prioritization",
                 "Apply a collection budget to five strategies using the same eligible artifacts.")
-    preferences = st.session_state["workspace_preferences"]
+    preferences = st.session_state.setdefault("workspace_preferences", {})
     def store_unavailable():
         preferences[key] = list(st.session_state["_unavailable"])
     def store_budget():
         preferences["budget"] = int(st.session_state["_budget"])
-    st.multiselect("Mark synthetic artifacts unavailable", [item.evidence_id for item in ws["candidates"]],
+    st.multiselect("Mark observed artifacts unavailable", [item.evidence_id for item in ws["candidates"]],
                    default=preferences.get(key, []), key="_unavailable", on_change=store_unavailable)
     st.number_input("Collection budget (cost units)", min_value=0, max_value=1000,
                     value=preferences.get("budget", 10), step=1, key="_budget", on_change=store_budget)
@@ -267,7 +267,7 @@ def prioritization(ws, key, count, seed):
 
 def investigation(ws):
     page_header("05 / CASE REVIEW", "Incident Investigation",
-                "Reconstruct the synthetic sequence and examine the facts supporting each investigative hypothesis.")
+                "Reconstruct observed Ubuntu authentication activity and examine each investigative hypothesis.")
     record, report = case_outputs(ws, st.session_state.get("preserved"), st.session_state.get("verification"))
     st.caption(ws["case"].case_id)
     st.subheader("Chronological timeline")
@@ -288,15 +288,15 @@ def investigation(ws):
 
 def vault(ws):
     page_header("06 / ARTIFACT INTEGRITY", "Evidence Vault",
-                "Preserve selected synthetic records, verify their SHA-256 digests, and export the collection.")
+                "Preserve selected observed records, verify their SHA-256 digests, and export the collection.")
     strategy = st.selectbox("Collection strategy", [item.value for item in SelectionStrategy], index=3, key="vault_strategy")
     result = next(item for item in ws["comparisons"] if item.strategy.value == strategy)
     st.caption(f"{len(result.selected_evidence_ids)} artifacts selected; {result.selected_cost} cost units within {result.budget}.")
-    if st.button("Preserve selected synthetic evidence", disabled=not result.selected_evidence_ids):
+    if st.button("Preserve selected observed evidence", disabled=not result.selected_evidence_ids):
         reset_vault()
         st.session_state["preserved"] = preserve_selected(ws, SelectionStrategy(strategy))
         st.session_state["preserved_strategy"] = strategy
-        st.success("Selected synthetic records copied to this session's temporary vault.")
+        st.success("Selected observed records copied to this session's temporary vault.")
     preserved = st.session_state.get("preserved")
     if preserved is None:
         st.info("No evidence has been preserved in this session. Select a strategy and preserve its chosen artifacts.")
@@ -312,7 +312,7 @@ def vault(ws):
         st.caption(f'Valid {verification["valid"]} / Modified {verification["modified"]} / Missing {verification["missing"]} / Invalid manifests {verification["invalid_manifests"]}')
     else:
         st.warning("Preserved artifacts have not yet been independently verified.")
-    st.download_button("Download evidence ZIP", preserved.archive(), "synthetic-evidence.zip", "application/zip")
+    st.download_button("Download evidence ZIP", preserved.archive(), "ubuntu-evidence.zip", "application/zip")
     st.subheader("Verification audit")
     table(read_audit_trail(preserved.vault / "verification-audit.jsonl"))
     with st.expander("Collection audit"):
