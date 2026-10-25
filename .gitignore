@@ -22,3 +22,7 @@ data/ground_truth/*
 data/candidates/*
 !data/candidates/.gitkeep
 
+
+# VM security logs may contain personal information and IP addresses
+data/live/*
+!data/live/.gitkeep
