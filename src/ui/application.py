@@ -200,13 +200,6 @@ def readiness(ws, count, seed):
         st.write(ws["details"]["model_limit"])
         st.json(ws["readiness"].to_dict())
     recommendations(ws)
-    st.subheader("Scenario comparison")
-    details = [ws["details"] if scenario == ws["scenario"] else build_workspace(scenario, count, seed, budget=0)["details"]
-               for scenario in SCENARIOS]
-    summary = aggregate_readiness(details)
-    table([{"Scenario": SCENARIOS[row["scenario_id"]], "Readiness (%)": row["readiness_percentage"]} for row in details])
-    st.caption("Fresh observations for each scenario; artifact exclusions apply only to the active instance.")
-    st.caption(f'Overall {summary["overall_readiness_percentage"]:.1f}%: {summary["aggregation_method"]}.')
 
 
 def detection(ws):
@@ -234,7 +227,9 @@ def prioritization(ws, key, count, seed):
                    default=preferences.get(key, []), key="_unavailable", on_change=store_unavailable)
     st.number_input("Collection budget (cost units)", min_value=0, max_value=1000,
                     value=preferences.get("budget", 10), step=1, key="_budget", on_change=store_budget)
-    if ws.get("source_mode") != "ubuntu_live":
+    if ws.get("source_mode") == "ubuntu_live":
+        ws = build_workspace_from_events(ws["events"], unavailable_ids=tuple(preferences.get(key, [])), budget=int(preferences.get("budget", 10)))
+    else:
         ws, _ = workspace(ws["scenario"], count, seed)
     name = st.selectbox("Inspect strategy", [item.value for item in SelectionStrategy], key="strategy")
     result = next(item for item in ws["comparisons"] if item.strategy.value == name)
@@ -261,7 +256,7 @@ def prioritization(ws, key, count, seed):
                 "Reason": "selected" if item.evidence_id in result.selected_evidence_ids else "does not fit remaining budget"}
                for item in sorted(eligible, key=lambda x: positions[x.evidence_id])])
     st.download_button("Download comparison JSON", json.dumps([item.to_dict() for item in ws["comparisons"]], indent=2),
-                       "synthetic-selection.json", "application/json")
+                       "evidence-selection.json", "application/json")
     st.caption("Rank weights are judgments. These demonstrations do not calculate scientific recall or precision.")
 
 
