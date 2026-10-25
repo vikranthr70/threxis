@@ -29,6 +29,7 @@ def reset_vault():
     if preserved:
         preserved.close()
     st.session_state.pop("verification", None)
+    st.session_state.pop("preserved_strategy", None)
 
 
 def workspace(scenario, count, seed):
@@ -368,12 +369,25 @@ def forensic_live_page(page):
         signature = tuple((event.event_id, event.timestamp) for event in events)
         if st.session_state.get("live_event_signature") != signature:
             reset_vault()
+            st.session_state.pop("_unavailable", None)
+            st.session_state["workspace_preferences"] = {"budget": int(st.session_state.get("workspace_preferences", {}).get("budget", 10))}
             st.session_state["live_event_signature"] = signature
         if not events:
-            page_header("THREXIS / FORENSIC READINESS", "Awaiting Ubuntu evidence", "The forensic dashboard will process real authentication events from your VM.")
-            st.info("No Ubuntu SSH failure records yet. Readiness and alerts are unavailable until evidence arrives.")
-            st.caption("Log path: data/live/ubuntu-auth.log. See docs/ubuntu-live-demo.md.")
-            table([{"Forensic capability": name, "Status": "Waiting for evidence"} for name in PAGES])
+            page_header("THREXIS / FORENSIC READINESS", page,
+                        "Forensic investigation workstation / Ubuntu VirtualBox telemetry")
+            st.info("Awaiting Ubuntu SSH authentication evidence. Live assessment starts when log records arrive.")
+            first, second, third = st.columns(3)
+            with first: statistic("Observed events", 0)
+            with second: statistic("Detection alerts", 0)
+            with third: statistic("Readiness score", "NOT ASSESSED")
+            st.subheader("Evidence readiness / source coverage")
+            table([{"Evidence source": source.replace("_", " ").title(), "Status": "UNKNOWN / NOT OBSERVED",
+                    "Readiness contribution": "Not assessed"} for source in
+                   ("authentication_log", "process_creation", "network_flow", "powershell_log")])
+            st.subheader("Incident workflow")
+            table([{"Stage": name, "Status": "Waiting for observed VM records"} for name in PAGES])
+            st.caption("Expected log: data/live/ubuntu-auth.log. A readiness percentage cannot be "
+                       "calculated from an empty feed without inventing evidence. See docs/ubuntu-live-demo.md.")
         else:
             ws = build_workspace_from_events(events, budget=int(st.session_state.get("workspace_preferences", {}).get("budget", 10)))
             st.caption("SOURCE: UBUNTU VM / OBSERVED AUTHENTICATION LOGS")
@@ -383,7 +397,7 @@ def forensic_live_page(page):
             elif page == "Evidence Prioritization": prioritization(ws, "live_unavailable", len(events), 0)
             elif page == "Incident Investigation": investigation(ws)
             elif page == "Evidence Vault": vault(ws)
-    except (ContractError, OSError, ValueError) as exc:
+    except (ContractError, OSError, ValueError, KeyError, IndexError) as exc:
         st.error(f"Unable to complete this operation: {exc}")
         st.caption("The operation failed. Adjust the inputs or inspect the local server logs.")
     st.caption("THREXIS / LIVE FORENSIC READINESS / LOCAL ACADEMIC DEMONSTRATION")
