@@ -7,13 +7,14 @@ import streamlit as st
 
 from src.common.models import ContractError, SelectionStrategy
 from src.ui.theme import apply_theme, favicon, instrument, page_header, statistic
+from src.ui.live import monitor_snapshot, LOG_PATH
 from src.ui.service import SCENARIOS, build_workspace, case_outputs, load_research_records, preserve_selected
 from src.readiness.assessment import aggregate_readiness, simulate_readiness_improvement, STATUS_FACTORS
 from src.readiness.selectors import rank_candidates
 from src.forensics.audit import read_audit_trail
 
 ROOT = Path(__file__).resolve().parents[2]
-PAGES = ["Command Center", "Forensic Readiness", "Threat Detection", "Evidence Prioritization",
+PAGES = ["Live Ubuntu Monitor", "Command Center", "Forensic Readiness", "Threat Detection", "Evidence Prioritization",
          "Incident Investigation", "Evidence Vault", "Research Evaluation", "Launch Status",
          "Privacy Policy", "Terms and Conditions"]
 
@@ -51,6 +52,36 @@ def recommendations(ws):
     for action in ws["details"]["recommended_actions"]:
         st.write(action)
     st.caption("Generic backend recommendations. The table orders requirements by weighted gap.")
+
+
+def live_monitor():
+    page_header("00 / LIVE LAB", "Ubuntu Security Monitor",
+                "Actual SSH authentication failures from an operator-supplied Ubuntu VM log. "
+                "No synthetic events are mixed into this view.")
+    st.caption("SOURCE: UBUNTU LAB VM / SSHD LOGS. No endpoint agent or network listener is installed.")
+    if st.button("Refresh log snapshot"):
+        st.rerun()
+    snapshot = monitor_snapshot()
+    if not snapshot["path_exists"]:
+        st.info("Waiting for Ubuntu authentication log at data/live/ubuntu-auth.log. "
+                "Copy or stream only your authorized lab VM's sshd log to this file.")
+        return
+    a, b = st.columns(2)
+    with a:
+        statistic("Observed SSH failures", len(snapshot["events"]))
+    with b:
+        statistic("Rule-generated alerts", len(snapshot["alerts"]))
+    if snapshot["alerts"]:
+        st.warning("SSH failure burst detected. This is suspicious activity, not confirmed compromise.")
+    else:
+        st.info("No SSH failure burst detected in the current snapshot.")
+    st.subheader("Live-source detection alerts")
+    table([item.to_dict() for item in snapshot["alerts"]])
+    st.subheader("Observed authentication events")
+    table([item.to_dict() for item in snapshot["events"]])
+    st.caption("Snapshot refresh is manual. The timestamps come from log lines when parseable; "
+               "syslog timestamps without timezone use the monitor host timezone. "
+               "Log ingestion is read-only and does not initiate an attack.")
 
 
 def overview(ws):
@@ -299,6 +330,7 @@ def main():
             st.warning("HUMAN REVIEW PENDING. Operator, contact, jurisdiction, and hosting terms must be completed before publication.")
             path = "privacy.md" if page == "Privacy Policy" else "terms.md"
             st.markdown((ROOT / "docs" / "legal" / path).read_text(encoding="utf-8"))
+        elif page == "Live Ubuntu Monitor": live_monitor()
         elif page == "Research Evaluation": research()
         elif page == "Launch Status": launch()
         else:
