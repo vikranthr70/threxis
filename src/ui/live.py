@@ -54,7 +54,8 @@ def read_auth_events(path: Path = LOG_PATH, limit: int = 2000) -> list[SecurityE
     from collections import deque
     with path.open("r", encoding="utf-8", errors="replace") as handle:
         lines = list(deque(handle, maxlen=limit))
-    fallback = datetime.now(timezone.utc)
+    # Use the source file timestamp as a stable fallback across Streamlit refreshes.
+    fallback = datetime.fromtimestamp(path.stat().st_mtime, timezone.utc)
     output = []
     for position, line in enumerate(lines):
         match = FAILED.search(line)
