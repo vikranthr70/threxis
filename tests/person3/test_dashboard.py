@@ -73,7 +73,7 @@ class DashboardInteractionTests(unittest.TestCase):
     def write_failures(self, count=3):
         self.path.write_text("".join(
             f"2026-10-25T10:00:{i:02d}+00:00 ubuntu sshd[101]: "
-            f"Failed password for invalid user lab from 127.0.0.1 port 55000 ssh2\\n"
+            f"Failed password for invalid user lab from 127.0.0.1 port 55000 ssh2\n"
             for i in range(count)
         ), encoding="utf-8")
 
